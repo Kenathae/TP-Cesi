@@ -1,0 +1,115 @@
+{
+  "variables": {
+      "vm_name": "debian_11",
+      "numvcpus": "1",
+      "memsize": "1024",
+      "disk_size": "20960",
+      "iso_url": "C:/Users/Dylan/Downloads/debian-11.5.0-amd64-netinst.iso",
+      "iso_checksum": "SHA256:E307D0E583B4A8F7E5B436F8413D4707DD4242B70AEA61EB08591DC0378522F3",
+      "ssh_username" : "vagrant",
+      "ssh_password" : "vagrant",
+      "boot_wait": "5s"
+    },
+    "builders": [
+      {
+        "type": "vmware-iso",
+        "boot_command": ["<esc><wait>auto preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg<enter>"],
+        "boot_wait": "{{ user `boot_wait` }}",
+        "disk_size": "{{ user `disk_size` }}",
+        "disk_type_id": "0",
+        "guest_os_type": "debian11-64",
+        "headless": false,
+        "http_directory": "C:/HashiCorp/Packer/VBOX_Debian/http",
+        "iso_checksum": "{{ user `iso_checksum` }}",
+        "iso_url": "{{ user `iso_url` }}",
+        "shutdown_command": "echo 'packer'|sudo -S shutdown -P now",
+        "ssh_password": "{{ user `ssh_password` }}",
+        "ssh_port": 22,
+        "ssh_username": "{{ user `ssh_username` }}",
+        "ssh_timeout": "30m",
+        "vm_name": "{{ user `vm_name` }}",
+        "network_adapter_type": "nat",
+        "vmx_data": {
+          "memsize": "{{ user `memsize` }}",
+          "numvcpus": "{{ user `numvcpus` }}",
+          "virtualHW.version": "14"
+        }
+      },
+      {
+        "type": "virtualbox-iso",
+        "boot_command": ["<esc><wait>auto preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg<enter>"],
+        "boot_wait": "{{ user `boot_wait` }}",
+        "disk_size": "{{ user `disk_size` }}",
+        "headless": false,
+        "guest_os_type": "Debian_64",
+        "http_directory": "C:/HashiCorp/Packer/VBOX_Debian/http",
+        "iso_checksum": "{{ user `iso_checksum` }}",
+        "iso_url": "{{ user `iso_url` }}",
+        "shutdown_command": "echo 'packer'|sudo -S shutdown -P now",
+        "ssh_password": "{{ user `ssh_password` }}",
+        "ssh_port": 22,
+        "ssh_username": "{{ user `ssh_username` }}",
+        "ssh_timeout": "30m",
+        "vm_name": "{{ user `vm_name` }}",
+        "vboxmanage": [
+          ["modifyvm", "{{.Name}}", "--memory", "{{ user `memsize` }}"],
+          ["modifyvm", "{{.Name}}", "--cpus", "{{ user `numvcpus` }}"],
+          ["modifyvm", "{{.Name}}", "--vram", "20"],
+          ["modifyvm", "{{.Name}}", "--graphicscontroller", "vmsvga"],
+          ["modifyvm", "{{.Name}}", "--acpi", "on"],
+          ["modifyvm", "{{.Name}}", "--ioapic", "on"],
+          ["modifyvm", "{{.Name}}", "--rtcuseutc", "on"],
+          ["modifyvm", "{{ .Name }}", "--nat-localhostreachable1", "on"]
+        ]
+      },
+      {
+        "type": "hyperv-iso",
+        "boot_command": ["<esc><wait>auto preseed/url=http://{{ .HTTPIP }}:{{ .HTTPPort }}/preseed.cfg<enter>"],
+        "boot_wait": "{{ user `boot_wait` }}",
+        "disk_size": "{{ user `disk_size` }}",
+        "headless": false,
+        "http_directory": "C:/HashiCorp/Packer/VBOX_Debian/http",
+        "iso_checksum": "{{ user `iso_checksum` }}",
+        "iso_url": "{{ user `iso_url` }}",
+        "shutdown_command": "echo 'packer'|sudo -S shutdown -P now",
+        "ssh_password": "{{ user `ssh_password` }}",
+        "ssh_port": 22,
+        "ssh_username": "{{ user `ssh_username` }}",
+        "ssh_timeout": "30m",
+        "vm_name": "{{ user `vm_name` }}",
+        "generation": "1",
+        "switch_name": "Default Switch",
+        "skip_export": true
+      }
+  ],
+  "provisioners": [
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer'|{{.Vars}} sudo -S -E bash '{{.Path}}'",
+      "inline": [
+        "apt -y update && apt -y upgrade",
+        "apt -y install python3-pip",
+        "pip3 --no-cache-dir install ansible"
+      ]
+    },
+    {
+      "type": "ansible-local",
+      "playbook_file": "C:/HashiCorp/Packer/VBOX_Debian/scripts/setup.yml"
+    },
+    {
+      "type": "shell",
+      "execute_command": "echo 'packer'|{{.Vars}} sudo -S -E bash '{{.Path}}'",
+      "scripts": ["C:/HashiCorp/Packer/VBOX_Debian/scripts/cleanup.sh"]
+    }
+  ],
+  "post-processors": [
+    [      
+      {
+        "type": "vagrant",
+        "keep_input_artifact": true,
+        "provider_override": "virtualbox",
+        "output": "C:/HashiCorp/Packer/output-virtualbox-iso/packer_{{.BuildName}}_{{.Provider}}.box"
+      }
+    ]
+  ]
+}
